@@ -267,3 +267,23 @@ func verifyData(data []byte, signType, sign string, key *rsa.PublicKey) (ok bool
 	}
 	return true, nil
 }
+
+func VerifyData(data, signType, sign, pubKey string) (ok bool, err error) {
+	signBytes, err := base64.StdEncoding.DecodeString(sign)
+	if err != nil {
+		return false, err
+	}
+	key, err := encoding.ParsePKCS1PublicKey(encoding.FormatPublicKey(pubKey))
+	if err != nil {
+		return false, err
+	}
+	if signType == K_SIGN_TYPE_RSA {
+		err = encoding.VerifyPKCS1v15WithKey([]byte(data), signBytes, key, crypto.SHA1)
+	} else {
+		err = encoding.VerifyPKCS1v15WithKey([]byte(data), signBytes, key, crypto.SHA256)
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
