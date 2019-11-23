@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"github.com/astaxie/beego/logs"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -83,8 +84,9 @@ func (this *Client) URLValues(param Param) (value url.Values, err error) {
 	if err != nil {
 		return nil, err
 	}
-	p.Add("biz_content", string(bytes))
-
+	if string(bytes) != "{}" {
+		p.Add("biz_content", string(bytes))
+	}
 	var ps = param.Params()
 	if ps != nil {
 		for key, value := range ps {
@@ -110,9 +112,11 @@ func (this *Client) doRequest(method string, param Param, result interface{}) (e
 	var buf io.Reader
 	if param != nil {
 		p, err := this.URLValues(param)
+		logs.Debug("p.EncodeErr:%v", err)
 		if err != nil {
 			return err
 		}
+		logs.Debug("p.EncodeErr:%s", p.Encode())
 		buf = strings.NewReader(p.Encode())
 	}
 
@@ -131,13 +135,13 @@ func (this *Client) doRequest(method string, param Param, result interface{}) (e
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)
+	logs.Debug("dataStr:%s", string(data))
 	if err != nil {
 		return err
 	}
 
 	if this.aliPublicKey != nil {
 		var dataStr = string(data)
-
 		var rootNodeName = strings.Replace(param.APIName(), ".", "_", -1) + kResponseSuffix
 
 		var rootIndex = strings.LastIndex(dataStr, rootNodeName)
@@ -212,6 +216,7 @@ func signWithPKCS1v15(param url.Values, privateKey *rsa.PrivateKey, hash crypto.
 	}
 	sort.Strings(pList)
 	var src = strings.Join(pList, "&")
+	logs.Debug("src:%s", src)
 	sig, err := encoding.SignPKCS1v15WithKey([]byte(src), privateKey, hash)
 	if err != nil {
 		return "", err
