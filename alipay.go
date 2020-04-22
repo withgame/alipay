@@ -502,6 +502,18 @@ func verifyData(data []byte, sign string, key *rsa.PublicKey) (ok bool, err erro
 	return true, nil
 }
 
+func (this *Client) VerifyData(data, sign string) (ok bool, err error) {
+	signBytes, err := base64.StdEncoding.DecodeString(sign)
+	if err != nil {
+		return false, err
+	}
+	publicKey, err := this.getAliPayPublicKey(this.aliPublicCertSN)
+	if err = crypto4go.RSAVerifyWithKey([]byte(data), signBytes, publicKey, crypto.SHA256); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func getCertSN(cert *x509.Certificate) string {
 	var value = md5.Sum([]byte(cert.Issuer.String() + cert.SerialNumber.String()))
 	return hex.EncodeToString(value[:])
